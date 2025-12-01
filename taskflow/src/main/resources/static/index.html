@@ -1,0 +1,40 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>TaskFlow — Home</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header>
+    <h1>TaskFlow</h1>
+    <nav>
+        <a href="/register.html">Register</a> |
+        <a href="/login.html">Login</a> |
+        <a href="/dashboard.html">Dashboard</a>
+    </nav>
+</header>
+
+<main>
+    <h2>Welcome to TaskFlow</h2>
+    <p>Simple Task Manager — plain HTML + JS frontend.</p>
+
+    <div id="authStatus"></div>
+</main>
+
+<script src="/js/app.js"></script>
+<script>
+    const authStatus = document.getElementById('authStatus');
+    const token = localStorage.getItem('jwt');
+    if (token) {
+      authStatus.innerHTML = `Logged in — <button id="logoutBtn">Logout</button>`;
+      document.getElementById('logoutBtn').onclick = () => {
+        localStorage.removeItem('jwt');
+        location.reload();
+      };
+    } else {
+      authStatus.innerHTML = `Not logged in`;
+    }
+</script>
+</body>
+</html>

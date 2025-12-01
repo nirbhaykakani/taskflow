@@ -1,10 +1,9 @@
 package com.taskflow.controller;
 
 import com.taskflow.dto.TaskCreateDTO;
-import com.taskflow.dto.TaskDTO;
-import com.taskflow.entity.User;
+import com.taskflow.dto.TaskResponseDTO;
+import com.taskflow.dto.TaskUpdateDTO;
 import com.taskflow.service.TaskService;
-import com.taskflow.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,50 +15,41 @@ import java.util.List;
 public class TaskController {
 
     private final TaskService taskService;
-    private final UserService userService;
 
-    public TaskController(TaskService taskService, UserService userService) {
+    public TaskController(TaskService taskService) {
         this.taskService = taskService;
-        this.userService = userService;
     }
 
-    // TEMP: We will replace this with JWT later
-    private User getUser(String email){
-        return userService.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+    // Create
+    @PostMapping
+    public ResponseEntity<TaskResponseDTO> createTask(@Valid @RequestBody TaskCreateDTO dto) {
+        TaskResponseDTO created = taskService.createTask(dto);
+        return ResponseEntity.ok(created);
     }
 
-    // Create a task
-    @PostMapping("/{email}/create")
-    public ResponseEntity<TaskDTO> create(
-            @PathVariable String email,
-            @Valid @RequestBody TaskCreateDTO dto
-    ){
-        TaskDTO task = taskService.createTask(dto, getUser(email));
-        return ResponseEntity.ok(task);
+    // List (current user or admin sees all)
+    @GetMapping
+    public ResponseEntity<List<TaskResponseDTO>> listTasks() {
+        return ResponseEntity.ok(taskService.getTasksForCurrentUser());
     }
 
-    // Get all tasks for a user
-    @GetMapping("/{email}")
-    public ResponseEntity<List<TaskDTO>> getUserTasks(@PathVariable String email){
-        List<TaskDTO> tasks = taskService.getTasks(getUser(email));
-        return ResponseEntity.ok(tasks);
+    // Get one
+    @GetMapping("/{id}")
+    public ResponseEntity<TaskResponseDTO> getTask(@PathVariable Long id) {
+        return ResponseEntity.ok(taskService.getTaskById(id));
     }
 
-    // Update task status (mark completed)
-    @PutMapping("/{taskId}/status/{completed}")
-    public ResponseEntity<TaskDTO> updateStatus(
-            @PathVariable Long taskId,
-            @PathVariable boolean completed
-    ){
-        TaskDTO updated = taskService.updateTaskStatus(taskId, completed);
-        return ResponseEntity.ok(updated);
+    // Update
+    @PutMapping("/{id}")
+    public ResponseEntity<TaskResponseDTO> updateTask(@PathVariable Long id,
+                                                      @Valid @RequestBody TaskUpdateDTO dto) {
+        return ResponseEntity.ok(taskService.updateTask(id, dto));
     }
 
-    // Delete task
-    @DeleteMapping("/{taskId}")
-    public ResponseEntity<Void> deleteTask(@PathVariable Long taskId){
-        taskService.deleteTask(taskId);
+    // Delete
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteTask(@PathVariable Long id) {
+        taskService.deleteTask(id);
         return ResponseEntity.noContent().build();
     }
 

@@ -1,0 +1,171 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Dashboard — TaskFlow</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header>
+    <h1>Dashboard</h1>
+    <nav>
+        <a href="/">Home</a> |
+        <a id="logout" href="#">Logout</a>
+    </nav>
+</header>
+
+<main>
+    <section id="createSection">
+        <h2>Create Task</h2>
+        <form id="createForm">
+            <input name="title" placeholder="Title" required><br>
+            <textarea name="description" placeholder="Description"></textarea><br>
+            <label>Priority
+                <select name="priority">
+                    <option>LOW</option>
+                    <option>MEDIUM</option>
+                    <option selected>HIGH</option>
+                </select>
+            </label><br>
+            <label>Due date <input name="dueDate" type="date"></label><br>
+            <button type="submit">Create</button>
+        </form>
+        <div id="createMsg"></div>
+    </section>
+
+    <section id="tasksSection">
+        <h2>Your Tasks</h2>
+        <div id="tasks"></div>
+    </section>
+</main>
+
+<script src="/js/app.js"></script>
+<script>
+    // Ensure logged in
+    const token = localStorage.getItem('jwt');
+    if (!token) {
+      alert('You must login first');
+      location.href = '/login.html';
+    }
+
+    document.getElementById('logout').addEventListener('click', e => {
+      e.preventDefault();
+      localStorage.removeItem('jwt');
+      location.href = '/';
+    });
+
+    const createForm = document.getElementById('createForm');
+    const createMsg = document.getElementById('createMsg');
+    const tasksDiv = document.getElementById('tasks');
+
+    async function api(path, opts={}) {
+      opts.headers = opts.headers || {};
+      if (!opts.headers['Content-Type']) opts.headers['Content-Type'] = 'application/json';
+      const jwt = localStorage.getItem('jwt');
+      if (jwt) opts.headers['Authorization'] = 'Bearer ' + jwt;
+      const res = await fetch(path, opts);
+      return res;
+    }
+
+    async function loadTasks() {
+      tasksDiv.innerHTML = 'Loading...';
+      try {
+        const res = await api('/api/tasks', { method: 'GET' });
+        if (!res.ok) {
+          if (res.status === 401) {
+            alert('Session expired. Please login again.');
+            localStorage.removeItem('jwt');
+            location.href = '/login.html';
+            return;
+          }
+          const err = await res.json().catch(()=>null);
+          tasksDiv.innerHTML = 'Error: ' + (err?.message || res.status);
+          return;
+        }
+        const tasks = await res.json();
+        if (tasks.length === 0) {
+          tasksDiv.innerHTML = '<p>No tasks yet.</p>';
+          return;
+        }
+        tasksDiv.innerHTML = '';
+        tasks.forEach(t => {
+          const el = document.createElement('div');
+          el.className = 'task';
+          el.innerHTML = `
+            <h3>${escapeHtml(t.title)}</h3>
+            <p>${escapeHtml(t.description || '')}</p>
+            <p>Priority: ${t.priority} • Due: ${t.dueDate || '—'}</p>
+            <p>Completed: <input type="checkbox" data-id="${t.id}" class="toggle" ${t.completed ? 'checked' : ''}></p>
+            <p>
+              <button data-id="${t.id}" class="del">Delete</button>
+            </p>
+            <hr>
+          `;
+          tasksDiv.appendChild(el);
+        });
+        attachTaskHandlers();
+      } catch (err) {
+        tasksDiv.innerHTML = 'Network error';
+      }
+    }
+
+    function attachTaskHandlers(){
+      document.querySelectorAll('.toggle').forEach(cb => {
+        cb.onchange = async (e) => {
+          const id = e.target.dataset.id;
+          const completed = e.target.checked;
+          const res = await api(`/api/tasks/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify({ completed })
+          });
+          if (!res.ok) {
+            alert('Failed to update');
+            loadTasks();
+          }
+        };
+      });
+
+      document.querySelectorAll('.del').forEach(btn => {
+        btn.onclick = async (e) => {
+          const id = btn.dataset.id;
+          if (!confirm('Delete this task?')) return;
+          const res = await api(`/api/tasks/${id}`, { method: 'DELETE' });
+          if (res.ok) loadTasks();
+          else alert('Delete failed');
+        };
+      });
+    }
+
+    createForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      createMsg.textContent = '';
+      const body = {
+        title: createForm.title.value.trim(),
+        description: createForm.description.value.trim(),
+        priority: createForm.priority.value,
+        dueDate: createForm.dueDate.value ? createForm.dueDate.value : null
+      };
+      const res = await api('/api/tasks', {
+        method: 'POST',
+        body: JSON.stringify(body)
+      });
+      if (res.ok) {
+        createMsg.textContent = 'Task created';
+        createForm.reset();
+        loadTasks();
+      } else {
+        const err = await res.json().catch(()=>null);
+        createMsg.textContent = err?.message || 'Create failed';
+      }
+    });
+
+    // small helper
+    function escapeHtml(str) {
+      return String(str).replace(/[&<>"']/g, s => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[s]);
+    }
+
+    // initial load
+    loadTasks();
+</script>
+</body>
+</html>

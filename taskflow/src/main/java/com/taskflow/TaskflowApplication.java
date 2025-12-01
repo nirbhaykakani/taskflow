@@ -22,15 +22,16 @@ public class TaskflowApplication {
 	CommandLineRunner run(UserRepository userRepo, TaskRepository taskRepo) {
 		return args -> {
 			User u = User.builder()
-					.name("Alice")
-					.email("alice@example.com")
+					.name("Louis")
+					.email("louis@example.com")
 					.password("123456")
+					.role("USER")
 					.build();
 			userRepo.save(u);
 
 			Task t1 = Task.builder()
-					.title("Finish Project")
-					.description("Complete TaskFlow backend")
+					.title("Finish_Project_")
+					.description("Complete_TaskFlow_backend_")
 					.priority("HIGH")
 					.dueDate(LocalDate.now().plusDays(3))
 					.completed(false)

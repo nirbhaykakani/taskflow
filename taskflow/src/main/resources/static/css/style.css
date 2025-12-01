@@ -1,0 +1,6 @@
+body { font-family: Arial, sans-serif; margin: 20px; }
+header { margin-bottom: 20px; }
+nav a { margin-right: 10px; }
+.task { padding: 8px; margin-bottom: 8px; border: 1px solid #ddd; border-radius: 6px; }
+button { padding: 6px 10px; cursor: pointer; }
+input, textarea, select { padding: 6px; width: 100%; max-width: 400px; margin-bottom: 8px; }
